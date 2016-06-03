@@ -17,6 +17,8 @@ package config
 import (
 	"path"
 	"strings"
+	"os"
+	"errors"
 )
 
 // Context structure handles the parsing of app.conf
@@ -36,10 +38,14 @@ func LoadContext(confName string, confPaths []string) (*Context, error) {
 	var err error
 	var conf *Config
 	for _, confPath := range confPaths {
-		conf, err = ReadDefault(path.Join(confPath, confName))
+		filePath := path.Join(confPath, confName)
+		conf, err = ReadDefault(filePath)
 		if err == nil {
 			return &Context{config: conf}, nil
+		} else if _, isPathErr := err.(*os.PathError); !isPathErr {
+			return nil, errors.New(filePath + " " + err.Error())
 		}
+
 	}
 	return nil, err
 }
@@ -134,8 +140,8 @@ func stripQuotes(s string) string {
 		return s
 	}
 
-	if s[0] == '"' && s[len(s)-1] == '"' {
-		return s[1 : len(s)-1]
+	if s[0] == '"' && s[len(s) - 1] == '"' {
+		return s[1 : len(s) - 1]
 	}
 
 	return s
