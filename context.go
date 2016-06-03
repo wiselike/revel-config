@@ -15,7 +15,9 @@
 package config
 
 import (
-	"path"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -33,15 +35,25 @@ func NewContext() *Context {
 }
 
 func LoadContext(confName string, confPaths []string) (*Context, error) {
-	var err error
-	var conf *Config
+	ctx := NewContext()
 	for _, confPath := range confPaths {
-		conf, err = ReadDefault(path.Join(confPath, confName))
-		if err == nil {
-			return &Context{config: conf}, nil
+		filePath := filepath.Join(confPath, confName)
+		currentConf, err := ReadDefault(filePath)
+		if err != nil {
+			if _, isPathErr := err.(*os.PathError); isPathErr {
+				// TODO don't ignore config not found
+				// due exists flow, ignore is required else it breaks the App
+				// LoadContext needs revist
+				fmt.Println(err)
+				continue
+			}
+
+			return nil, fmt.Errorf("%v: %v", filePath, err)
 		}
+
+		ctx.config.Merge(currentConf)
 	}
-	return nil, err
+	return ctx, nil
 }
 
 func (c *Context) Raw() *Config {
