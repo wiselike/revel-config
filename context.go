@@ -43,6 +43,7 @@ func LoadContext(confName string, confPaths []string) (*Context, error) {
 			if _, isPathErr := err.(*os.PathError); !isPathErr {
 				return nil, fmt.Errorf("%v: %v", path, err)
 			}
+			continue
 		}
 		ctx.config.Merge(conf)
 	}
