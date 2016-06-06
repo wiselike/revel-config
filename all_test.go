@@ -398,3 +398,77 @@ func TestMerge(t *testing.T) {
 		t.Errorf("Expected '[X] x.four' to be 'x4' but instead it was '%s'", result)
 	}
 }
+
+func TestLoadContextOneConf(t *testing.T) {
+	ctx, err := LoadContext("app.conf", []string{"testdata/conf-path1"})
+	if err != nil {
+		t.Errorf("Error: %v", err)
+		t.FailNow()
+	}
+
+	ctx.SetSection("X")
+	result, found := ctx.String("x.three")
+	if !strings.EqualFold("conf1-sourcex3", result) {
+		t.Errorf("Expected '[X] x.three' to be 'conf1-sourcex3' but instead it was '%s'", result)
+	}
+
+	_, found = ctx.String("x.notexists")
+	if found {
+		t.Error("Config 'x.notexists' shouldn't found")
+	}
+
+	ctx.SetSection("Y")
+	result, found = ctx.String("y.one")
+	if !strings.EqualFold("conf1-sourcey1", result) {
+		t.Errorf("Expected '[Y] y.one' to be 'conf1-sourcey1' but instead it was '%s'", result)
+	}
+
+	_, found = ctx.String("y.notexists")
+	if found {
+		t.Error("Config 'y.notexists' shouldn't found")
+	}
+}
+
+func TestLoadContextMultipleConfWithPriority(t *testing.T) {
+	ctx, err := LoadContext("app.conf", []string{"testdata/conf-path1", "testdata/conf-path2"})
+	if err != nil {
+		t.Errorf("Error: %v", err)
+		t.FailNow()
+	}
+
+	ctx.SetSection("X")
+	result, found := ctx.String("x.two")
+	if !strings.EqualFold("override-conf2-sourcex2", result) {
+		t.Errorf("Expected '[X] x.two' to be 'override-conf2-sourcex2' but instead it was '%s'", result)
+	}
+
+	_, found = ctx.String("x.notexists")
+	if found {
+		t.Error("Config 'x.notexists' shouldn't be found")
+	}
+
+	ctx.SetSection("Y")
+	result, found = ctx.String("y.three")
+	if !strings.EqualFold("override-conf2-sourcey3", result) {
+		t.Errorf("Expected '[Y] y.three' to be 'override-conf2-sourcey3' but instead it was '%s'", result)
+	}
+
+	_, found = ctx.String("y.notexists")
+	if found {
+		t.Error("Config 'y.notexists' shouldn't be found")
+	}
+}
+
+func TestLoadContextConfNotFound(t *testing.T) {
+	_, err := LoadContext("notfound.conf", []string{"testdata/conf-path1"})
+	if err != nil && !strings.EqualFold("open testdata/conf-path1/notfound.conf: no such file or directory", err.Error()) {
+		t.Errorf("This is not expected error: %v", err)
+	}
+}
+
+func TestLoadContextInvalidConf(t *testing.T) {
+	_, err := LoadContext("app-invalid.conf", []string{"testdata"})
+	if err != nil && !strings.EqualFold("testdata/app-invalid.conf: could not parse line #7: %(two)s + %(four)s", err.Error()) {
+		t.Errorf("This is not expected error: %v", err)
+	}
+}
